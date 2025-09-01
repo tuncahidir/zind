@@ -42,13 +42,17 @@ class gameMod(Screen):
         return True
     
     def on_touch_up(self, touch):
+        if touch.grab_current is self:
+
+            if self._daire_down and self.daire.collide_point(*touch.pos):
+                self.daire.halka = not self.daire.halka
+            self._daire_down = False
+            return True
+        
         self.right_push = False
         self.left_push = False
-
-        if self._daire_down and self.daire.collide_point(*touch.pos):
-          self.daire.halka = not self.daire.halka
-        self._daire_down = False
         return True
+    
     
     def update(self, dt):
         r = self.daire.yaricap
@@ -72,42 +76,45 @@ class gameMod(Screen):
 class CircleWidget(Widget):
     yaricap = NumericProperty(50)
     halka = BooleanProperty(False)
-    HALKA_KALINLIK = 8.0
+    HALKA_KALINLIK = 12.0
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        with self.canvas:
-            Color(1, 0, 0, 1)
-            self._shape = Ellipse(pos=(0,0), size = (0,0))
-        self._mod = 'solid'
-        self.bind(pos = self.redraw, size = self.redraw, yaricap = self.redraw, halka = self.redraw)
+        self._ell = None
+        self._line = None
+        self._init_done = False
 
-    def on_parent(self, *args):
-        Clock.schedule_once(lambda dt: self.redraw(), 0)
+        with self.canvas:
+            self._col_solid = Color(1, 0, 0, 1)
+            self._ell = Ellipse(pos=(0,0), size = (0,0))
+
+            self._col_ring = Color(1, 0, 0, 1)
+            self._line = Line(circle=(0, 0, 0), width=0)
+
+        self._init_done = True    
+    
+        self.bind(pos = self.redraw, size = self.redraw, yaricap = self.redraw, halka = self.redraw)
+        Clock.schedule_once(self.redraw, 0)
 
     def redraw(self, *args):
-        print("redraw r=", self.yaricap, "center=", self.center, "size=", self.size, "mod=", getattr(self, "_mod", None), "halka=", self.halka)
-        r = self.yaricap
-        cx, cy = self.center
-        hedef_mod = 'ring' if self.halka else 'solid'
 
-        if self._mod != hedef_mod:
-            self.canvas.clear()
-            from kivy.graphics import Color, Ellipse, Line
-            Color(1,1,1,1)
-            
-            if  hedef_mod == 'ring':
-                self._shape = Line(circle=(cx, cy, r), width=self.HALKA_KALINLIK)    
-            else:
-                self._shape = Ellipse(pos=(cx - r, cy - r), size=(2*r, 2*r))
-            self._mod = hedef_mod
+        if not self._init_done or self._ell is None or self._line is None:
             return
 
-        if self._mod == 'ring':
-            self._shape.circle = (cx, cy, r)
+        r = self.yaricap
+        cx = self.center_x
+        cy = self.center_y
+
+        if self.halka:
+
+            self._ell.size = (0, 0)
+            self._line.circle = (cx, cy, r)
+            self._line.width = self.HALKA_KALINLIK
         else:
-            self._shape.pos = (cx - r, cy - r)
-            self._shape.size = (2*r, 2*r)
+            self._ell.pos = (cx - r, cy - r)
+            self._ell.size = (2*r, 2*r)
+            #self._line.width = 0
+
 
 
